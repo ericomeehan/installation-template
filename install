@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# install
+#
+# eric o meehan
+# 2022-05-17
+#
+# configures mounted filesystem as source controlled arch linux installation
+
+INSTALLATION_ID=installation-template
+
+function log() {
+	priority=${2:-6}
+	executable=$(cd $(dirname $0) && pwd)/$0
+	[[ $syslogServer != 0 ]] && syslogServerArg="-n $syslogServer --tcp"
+	tag="executable={{ $executable }} | executionId={{ $executionId }}"
+	logger -p $priority $t "$tag" $syslogServerArg "$1"
+}
+
+while [[ $# -gt 0 ]]
+do
+	case $1 in
+		-e|--executionId)
+			executionId=$2
+			shift ; shift ;;
+		-g|--gitServer)
+			gitServer=$2
+			shift ; shift ;;
+		-s|--syslogServer)
+			syslogServer=$2
+			shift ; shift ;;
+		*)
+			echo "invalid argument: $1"
+			exit 1
+	esac
+done
+[[ -z $executionId ]] && executionId=$(uuidgen)
+[[ -z $gitServer ]] && gitServer=localhost
+[[ -z $syslogServer ]] && syslogServer=0
+if [[ -z $(ls /mnt | grep $INSTALLATION_ID) ]]
+then
+	log "mountpoint not found | mountPoint={{ /mnt/$INSTALLATION_ID }}" 3
+	log "exiting" 3
+	exit 1
+fi
+
+log "begin"
+log "installing base | installationId={{ $INSTALLATION_ID }}"
+pacstrap /mnt/$INSTALLATION_ID base
+log "cloning $INSTALLATION_ID repository | repositoryUrl={{ $gitServer:installations/$INSTALLATION_ID }}"
+git clone $gitServer:installations/$INSTALLATION_ID /mnt/$INSTALLATION_ID/usr/local/src/$INSTALLATION_ID
+log "switching to chroot"
+arch-chroot /mnt/$INSTALLATION_ID 			\
+	./usr/local/src/$INSTALLATION_ID/install 	\
+		--executionId $executionId 		\
+		--installationId $INSTALLATION_ID 	\
+		--syslogServer $syslogServer
+log "copying passwords"
+cat /mnt/$INSTALLATION_ID/root/passwords.txt > $INSTALLATION_ID-passwords.log
+rm /mnt/$INSTALLATION_ID/root/passwords.txt
+log "end"

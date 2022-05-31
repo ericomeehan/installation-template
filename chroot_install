@@ -1,0 +1,111 @@
+#!/bin/bash
+#
+# chroot-install
+#
+# eric o meehan
+# 2022-05-17
+#
+# configures an installation from within chroot
+
+function log() {
+	priority=${2:-6}
+	executable=$(cd $(dirname $0) && pwd)/$0
+	[[ $syslogServer != 0 ]] && syslogServerArg="-n $syslogServer --tcp"
+	tag="executable={{ $executable }} | executionId={{ $executionId }}"
+	logger -p $priority $t "$tag" $syslogServerArg "$1"
+}
+
+while [[ $# -gt 0 ]]
+do
+	case $1 in
+		-e|--executionId)
+			executionId=$2
+			shift ; shift ;;
+		-i|--installationId)
+			installationId=$2
+			shift ; shift ;;
+		-s|--syslogServer)
+			syslogServer=$2
+			shift ; shift ;;
+		*)
+			echo "invalid argumenti: $1" >&2
+			exit 1 ;;
+	esac
+done
+[[ -z $executionId ]] && executionId=$(uuidgen)
+[[ -z $syslogServer ]] && syslogServer=0
+if [[ -z $installationId ]]
+then
+	log "argument required | argument={{ installationId }}" 3
+	log "exiting" 3
+	exit 1
+fi
+
+installationSource=/usr/local/src/$installationId
+
+log "begin"
+log "setting root password"
+rootPassword=$(uuidgen)
+echo "$installationId | root | $rootPassword" > /root/passwords.txt
+echo "root:$rootPassword" | chpasswd
+
+timezone=$(cat $installationSource/timezone)
+log "setting timezone | timezone={{ $timezone }}"
+ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
+
+log "generating locales"
+ln -sf $installationSource/etc/locale.gen /etc/locale.gen
+locale-gen
+hwclock --systohc
+
+for package in $(cat $installationSource/packages)
+do
+	log "installing package | package={{ $package }}"
+	pacman -S $package --noconfirm
+done
+
+for configuration in $(cat $installationSource/etc/index.log)
+do
+	log "linking configuration | configuration={{ $configuration }}"
+	ln -sf $installationSource/etc/$configuration /etc/$configuration
+done
+
+for executable in $(cat $installationSource/bin/index.log)
+do
+	log "linking executable | executable={{ $executable }}"
+	ln -sf $installationSource/bin/$executable /usr/local/bin/$executable
+done
+
+for service in $(cat $installationSource/services)
+do
+	log "enabling service | service={{ $service }}"
+	systemctl enable $service
+done
+
+for group in $(ls $installationSource/groups)
+do
+	log "installing group | group={{ $group }}"
+	.$installationSource/groups/$group/install 	\
+		--executionId $executionId 		\
+		--installationId $installationId 	\
+		--syslogServer $syslogServer
+done
+
+for user in $(ls $installationSource/users)
+do
+	log "installing user | user={{ $user }}"
+	.$installationSource/users/$user/install	\
+		--executionId $executionId		\
+		--installationId $installationId	\
+		--syslogServer $syslogServer
+done
+
+for policy in $(ls $installationSource/policies)
+do
+	log "installing global policy | policy={{ $policy }}"
+	.$installationSource/policies/$policy/install	\
+		--executionId $executionId		\
+		--installationId $installationId	\
+		--syslogServer $syslogServer
+done
+log "end"
