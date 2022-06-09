@@ -12,7 +12,7 @@ function log() {
 	executable=$(cd $(dirname $0) && pwd)/$0
 	[[ $syslogServer != 0 ]] && syslogServerArg="-n $syslogServer --tcp"
 	tag="executable={{ $executable }} | executionId={{ $executionId }}"
-	logger -p $priority $t "$tag" $syslogServerArg "$1"
+	logger -p $priority -t "$tag" $syslogServerArg "$1"
 }
 
 while [[ $# -gt 0 ]]
