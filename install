@@ -30,7 +30,7 @@ do
 			syslogServer=$2
 			shift ; shift ;;
 		*)
-			echo "invalid argument: $1" > &2
+			echo "invalid argument: $1" >&2
 			exit 1
 	esac
 done
