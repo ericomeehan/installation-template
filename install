@@ -48,7 +48,7 @@ log "begin"
 log "installing base | installationId={{ $INSTALLATION_ID }}"
 pacstrap /mnt/$INSTALLATION_ID base
 log "cloning $INSTALLATION_ID repository | repositoryUrl={{ $gitServer:installations/$INSTALLATION_ID }}"
-git clone --recursive-submodules $gitServer:installations/$INSTALLATION_ID /mnt/$INSTALLATION_ID/usr/local/src/$INSTALLATION_ID
+git clone --recurse-submodules $gitServer:installations/$INSTALLATION_ID /mnt/$INSTALLATION_ID/usr/local/src/$INSTALLATION_ID
 log "switching to chroot"
 arch-chroot /mnt/$INSTALLATION_ID 			\
 	./usr/local/src/$INSTALLATION_ID/install 	\
