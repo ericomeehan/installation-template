@@ -85,27 +85,27 @@ done
 for group in $(ls $installationSource/groups)
 do
 	log "installing group | group={{ $group }}"
-	.$installationSource/groups/$group/install 	\
-		--executionId $executionId 		\
-		--installationId $installationId 	\
+	 bash $installationSource/groups/$group/install 	\
+		--executionId $executionId 			\
+		--installationId $installationId	 	\
 		--syslogServer $syslogServer
 done
 
 for user in $(ls $installationSource/users)
 do
 	log "installing user | user={{ $user }}"
-	.$installationSource/users/$user/install	\
-		--executionId $executionId		\
-		--installationId $installationId	\
+	bash $installationSource/users/$user/install		\
+		--executionId $executionId			\
+		--installationId $installationId		\
 		--syslogServer $syslogServer
 done
 
 for policy in $(ls $installationSource/policies)
 do
 	log "installing global policy | policy={{ $policy }}"
-	.$installationSource/policies/$policy/install	\
-		--executionId $executionId		\
-		--installationId $installationId	\
+	bash $installationSource/policies/$policy/install		\
+		--executionId $executionId				\
+		--installationId $installationId			\
 		--syslogServer $syslogServer
 done
 log "end"
