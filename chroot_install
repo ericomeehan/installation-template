@@ -58,6 +58,8 @@ ln -sf $installationSource/etc/locale.gen /etc/locale.gen
 locale-gen
 hwclock --systohc
 
+log "updating pacman databases"
+pacman -Sy
 for package in $(cat $installationSource/packages)
 do
 	log "installing package | package={{ $package }}"
